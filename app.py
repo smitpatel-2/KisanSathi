@@ -1,19 +1,20 @@
 # Importing essential libraries and modules
 
 from flask import Flask, render_template, request, Markup
+from werkzeug.utils import redirect
+
 from utils.disease import disease_dic
+from utils.fertilizer import fertilizer_dic
+import requests
+import config
+import pickle
 import io
 import torch
 from torchvision import transforms
 from PIL import Image
 from utils.model import ResNet9
 
-# ==============================================================================================
-
-# -------------------------LOADING THE TRAINED MODELS -----------------------------------------------
-
 # Loading plant disease classification model
-
 disease_classes = ['Apple___Apple_scab',
                    'Apple___Black_rot',
                    'Apple___Cedar_apple_rust',
@@ -60,16 +61,7 @@ disease_model.load_state_dict(torch.load(
 disease_model.eval()
 
 
-# =========================================================================================
-
-
-
 def predict_image(img, model=disease_model):
-    """
-    Transforms image to tensor and predicts disease label
-    :params: image
-    :return: prediction (string)
-    """
     transform = transforms.Compose([
         transforms.Resize(256),
         transforms.ToTensor(),
@@ -80,15 +72,13 @@ def predict_image(img, model=disease_model):
 
     # Get predictions from model
     yb = model(img_u)
+
     # Pick index with highest probability
     _, preds = torch.max(yb, dim=1)
     prediction = disease_classes[preds[0].item()]
+
     # Retrieve the class label
     return prediction
-
-
-# ===============================================================================================
-# ------------------------------------ FLASK APP -------------------------------------------------
 
 
 app = Flask(__name__)
@@ -96,33 +86,32 @@ app = Flask(__name__)
 
 # render home page
 
-
 @app.route('/')
 def home():
-    title = 'KisanSathi - Home'
+    title = 'Harvestify - Home'
     return render_template('index.html', title=title)
 
 
 
 
 # render disease prediction input page
+@app.route('/disease')
+def disease_prediction():
+    title = 'Harvestify - Disease Prediction'
+
+    return render_template('disease.html', title=title)
 
 
 # ===============================================================================================
 
 # RENDER PREDICTION PAGES
 
-# render crop recommendation result page
-
-
-
-
 # render disease prediction result page
 
 
 @app.route('/disease-predict', methods=['GET', 'POST'])
 def disease_prediction():
-    title = 'KisanSathi - Disease Detection'
+    title = 'Harvestify - Disease Detection'
 
     if request.method == 'POST':
         if 'file' not in request.files:
